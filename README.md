@@ -4,8 +4,19 @@
 > A serverless, real-time campus facility management system built on AWS Lambda, DynamoDB, API Gateway, and S3.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/Node.js-24.x-green.svg)](https://nodejs.org)
 [![AWS SAM](https://img.shields.io/badge/AWS-SAM-orange.svg)](https://aws.amazon.com/serverless/sam/)
+
+---
+
+### 🌐 Live Deployment Links
+
+- **Live Application (Frontend)**: [http://campuspulse-frontend-340514595414-us-east-1.s3-website-us-east-1.amazonaws.com](http://campuspulse-frontend-340514595414-us-east-1.s3-website-us-east-1.amazonaws.com)
+- **Live API Endpoint**: `https://ojytn19zfi.execute-api.us-east-1.amazonaws.com/prod`
+- **Health Check**: [https://ojytn19zfi.execute-api.us-east-1.amazonaws.com/prod/health](https://ojytn19zfi.execute-api.us-east-1.amazonaws.com/prod/health)
+- **Administrator Secret Token**: `campuspulse-prod-admin-token-2026-secure` (used for updating issue statuses)
+- **AWS Region**: `us-east-1`
+- **AWS Stack Name**: `campuspulse`
 
 ---
 
