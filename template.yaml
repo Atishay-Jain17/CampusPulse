@@ -1,0 +1,184 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  CampusPulse - Serverless Campus Issue Tracker
+  AWS Cloud Innovation Challenge submission
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: nodejs20.x
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref IssuesTable
+        NODE_OPTIONS: '--enable-source-maps'
+
+Parameters:
+  AdminToken:
+    Type: String
+    Description: Secret token for administrator operations (status updates)
+    NoEcho: true
+    MinLength: 16
+
+Resources:
+  # DynamoDB Table for Issues
+  IssuesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'campuspulse-issues-${AWS::StackName}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: status-createdAt-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+      Tags:
+        - Key: Project
+          Value: CampusPulse
+        - Key: Environment
+          Value: production
+
+  # Lambda function for API
+  CampusPulseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'campuspulse-api-${AWS::StackName}'
+      CodeUri: backend/
+      Handler: dist/handler.handler
+      Description: CampusPulse API handler
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref IssuesTable
+          ADMIN_TOKEN: !Ref AdminToken
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref IssuesTable
+      Events:
+        HealthCheck:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CampusPulseApi
+            Path: /health
+            Method: GET
+        GetIssues:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CampusPulseApi
+            Path: /issues
+            Method: GET
+        CreateIssue:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CampusPulseApi
+            Path: /issues
+            Method: POST
+        GetIssue:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CampusPulseApi
+            Path: /issues/{id}
+            Method: GET
+        UpdateIssue:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CampusPulseApi
+            Path: /issues/{id}
+            Method: PATCH
+      Tags:
+        Project: CampusPulse
+
+  # API Gateway HTTP API
+  CampusPulseApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+          - PATCH
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - X-Admin-Token
+        MaxAge: 86400
+
+  # S3 Bucket for Frontend
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'campuspulse-frontend-${AWS::AccountId}-${AWS::Region}'
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+            AllowedOrigins:
+              - '*'
+      Tags:
+        - Key: Project
+          Value: CampusPulse
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${CampusPulseApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+
+  FrontendBucketName:
+    Description: S3 bucket name for frontend assets
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-FrontendBucket'
+
+  FrontendUrl:
+    Description: Frontend website URL
+    Value: !GetAtt FrontendBucket.WebsiteURL
+    Export:
+      Name: !Sub '${AWS::StackName}-FrontendUrl'
+
+  IssuesTableName:
+    Description: DynamoDB table name
+    Value: !Ref IssuesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-IssuesTable'
