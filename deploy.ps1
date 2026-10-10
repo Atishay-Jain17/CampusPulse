@@ -15,11 +15,37 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Auto-detect Python Scripts and AWS CLI paths
+$PythonScripts = "$HOME\AppData\Roaming\Python\Python314\Scripts"
+if (Test-Path $PythonScripts) {
+    $env:Path = "$PythonScripts;" + $env:Path
+}
+$env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:Path
+$env:SAM_CLI_TELEMETRY = 0
+
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "  CampusPulse AWS Deployment (Windows)" -ForegroundColor Cyan
 Write-Host "  Stack: $StackName | Region: $Region" -ForegroundColor Cyan
 Write-Host "============================================"
 Write-Host ""
+
+# Verify AWS CLI and Credentials
+Write-Host "[0/6] Checking AWS credentials..." -ForegroundColor Yellow
+$Identity = aws sts get-caller-identity 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "❌ AWS credentials are not configured or expired." -ForegroundColor Red
+    Write-Host "   Please run 'aws configure' in your terminal and provide:" -ForegroundColor Yellow
+    Write-Host "   - AWS Access Key ID" -ForegroundColor White
+    Write-Host "   - AWS Secret Access Key" -ForegroundColor White
+    Write-Host "   - Default region name (e.g. us-east-1)" -ForegroundColor White
+    Write-Host "   Then re-run .\deploy.ps1" -ForegroundColor Yellow
+    Write-Host ""
+    exit 1
+} else {
+    Write-Host "  ✅ Connected as: $Identity" -ForegroundColor Green
+}
+
 
 # 1. Build backend
 Write-Host "[1/6] Building backend TypeScript..." -ForegroundColor Yellow

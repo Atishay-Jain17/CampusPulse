@@ -12,6 +12,12 @@ import { v4 as uuidv4 } from 'uuid';
 
 const TABLE_NAME = process.env.TABLE_NAME || 'campuspulse-issues';
 
+function isLocalStorage(): boolean {
+  return process.env.USE_LOCAL_STORAGE === 'true';
+}
+
+const localStore = new Map<string, Issue>();
+
 const client = new DynamoDBClient({
   region: process.env.AWS_REGION || 'us-east-1',
 });
@@ -39,6 +45,12 @@ export async function createIssueInDB(
     isDemoData: isDemoData || undefined,
   };
 
+  if (isLocalStorage()) {
+    localStore.set(issue.id, issue);
+    console.log(`[LocalDB] Created issue ${issue.id}: "${issue.title}"`);
+    return issue;
+  }
+
   await docClient.send(
     new PutCommand({
       TableName: TABLE_NAME,
@@ -52,6 +64,10 @@ export async function createIssueInDB(
 }
 
 export async function getIssueFromDB(id: string): Promise<Issue | null> {
+  if (isLocalStorage()) {
+    return localStore.get(id) || null;
+  }
+
   const result = await docClient.send(
     new GetCommand({
       TableName: TABLE_NAME,
@@ -70,6 +86,22 @@ export interface ListIssuesOptions {
 }
 
 export async function listIssuesFromDB(options: ListIssuesOptions = {}): Promise<Issue[]> {
+  if (isLocalStorage()) {
+    let items = Array.from(localStore.values());
+    if (options.status) {
+      items = items.filter(i => i.status === options.status);
+    }
+    if (options.category) {
+      items = items.filter(i => i.category === options.category);
+    }
+    if (options.priority) {
+      items = items.filter(i => i.priority === options.priority);
+    }
+    return items.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
   const filterExpressions: string[] = [];
   const expressionAttributeNames: Record<string, string> = {};
   const expressionAttributeValues: Record<string, string> = {};
@@ -119,6 +151,19 @@ export async function updateIssueInDB(
   update: UpdateIssueInput
 ): Promise<Issue | null> {
   const now = new Date().toISOString();
+
+  if (isLocalStorage()) {
+    const existing = localStore.get(id);
+    if (!existing) return null;
+    const updated: Issue = {
+      ...existing,
+      status: update.status,
+      updatedAt: now,
+    };
+    localStore.set(id, updated);
+    console.log(`[LocalDB] Updated issue ${id} to status: ${update.status}`);
+    return updated;
+  }
 
   try {
     const result = await docClient.send(

@@ -285,23 +285,36 @@ Tests are **unit tests with mocked DynamoDB** — no AWS credentials required.
 
 ---
 
-## 💻 Local Development
+## 💻 Local Development & Evaluation (Offline / No AWS required)
 
+You can run and evaluate the complete full-stack application locally in 60 seconds with zero AWS credentials:
+
+### 1. Start the Local API Server
 ```bash
-# Backend - build and watch
 cd backend
 npm install
-npm run build:watch
-
-# Frontend - development server with API proxy
-cd frontend
-cp .env.example .env.local
-# Edit .env.local: VITE_API_BASE_URL=https://your-api-endpoint/prod
-npm install
 npm run dev
+# Server starts on http://localhost:3001 with In-Memory storage (USE_LOCAL_STORAGE=true)
+# Default Admin Token: campuspulse-admin-token-2026
 ```
 
-For local API testing without AWS deployment, use SAM local:
+### 2. Seed Sample Data (Optional)
+In another terminal:
+```bash
+node scripts/seed.js http://localhost:3001
+```
+
+### 3. Start the Frontend
+In another terminal:
+```bash
+cd frontend
+npm install
+echo "VITE_API_BASE_URL=http://localhost:3001" > .env.local
+npm run dev
+# Frontend runs on http://localhost:3000
+```
+
+### 4. Or use SAM Local (with Docker)
 ```bash
 sam local start-api --env-vars backend/.env.example
 ```

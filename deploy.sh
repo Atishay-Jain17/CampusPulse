@@ -22,6 +22,16 @@ echo "  Stack: $STACK_NAME | Region: $REGION"
 echo "============================================"
 echo ""
 
+# Check AWS credentials
+echo "[0/6] Checking AWS credentials..."
+if ! aws sts get-caller-identity > /dev/null 2>&1; then
+  echo "❌ AWS credentials are not configured or expired."
+  echo "   Please run 'aws configure' first."
+  exit 1
+fi
+echo "  ✅ AWS credentials verified."
+echo ""
+
 # 1. Build backend
 echo "[1/6] Building backend TypeScript..."
 cd backend
