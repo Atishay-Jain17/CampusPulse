@@ -1,7 +1,8 @@
 import axios, { AxiosError } from 'axios';
 import type { Issue, CreateIssuePayload, IssueFilters, IssueStatus } from './types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const DEFAULT_PROD_API = 'https://ojytn19zfi.execute-api.us-east-1.amazonaws.com/prod';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || DEFAULT_PROD_API;
 
 if (!API_BASE) {
   console.warn('[CampusPulse] VITE_API_BASE_URL not set. API calls will fail.');
