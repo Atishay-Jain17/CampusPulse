@@ -130,6 +130,11 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub 'campuspulse-frontend-${AWS::AccountId}-${AWS::Region}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: false
+        RestrictPublicBuckets: false
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: index.html
